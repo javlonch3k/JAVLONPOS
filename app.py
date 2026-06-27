@@ -276,7 +276,13 @@ def yopish(buyurtma_id):
     return redirect(url_for('stollar'))
 
 
-init_db()
+with app.app_context():
+    init_db()
+    # Tekshirish: ofitsiantlar bormi
+    conn = get_connection()
+    count = conn.execute("SELECT COUNT(*) FROM ofitsiantlar").fetchone()[0]
+    print(f"DB tayyor. Ofitsiantlar soni: {count}")
+    conn.close()
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
