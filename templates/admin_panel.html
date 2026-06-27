@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h2>🔐 Admin Panel</h2>
+    <div class="admin-nav">
+        <a href="{{ url_for('admin_menyu') }}" class="admin-nav-btn">🍽️ Menyu</a>
+        <a href="{{ url_for('admin_stollar') }}" class="admin-nav-btn">🪑 Stollar</a>
+        <a href="{{ url_for('admin_ofitsiantlar') }}" class="admin-nav-btn">👥 Ofitsiantlar</a>
+        <a href="{{ url_for('printerlar') }}" class="admin-nav-btn">🖨️ Printerlar</a>
+        <a href="{{ url_for('admin_hisobot') }}" class="admin-nav-btn">📊 Hisobot</a>
+        <a href="{{ url_for('admin_logout') }}" class="admin-nav-btn logout">🚪 Chiqish</a>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">🪑</div>
+        <div class="stat-value">{{ stats.stollar }}</div>
+        <div class="stat-label">Stollar</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-value">{{ stats.ofitsiantlar }}</div>
+        <div class="stat-label">Ofitsiantlar</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🍽️</div>
+        <div class="stat-value">{{ stats.menyu }}</div>
+        <div class="stat-label">Menyu</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🖨️</div>
+        <div class="stat-value">{{ stats.printerlar }}</div>
+        <div class="stat-label">Printerlar</div>
+    </div>
+    <div class="stat-card highlight">
+        <div class="stat-icon">📋</div>
+        <div class="stat-value">{{ stats.bugungi_buyurtmalar }}</div>
+        <div class="stat-label">Bugungi buyurtmalar</div>
+    </div>
+    <div class="stat-card highlight">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value">{{ "{:,.0f}".format(stats.bugungi_daromad) }}</div>
+        <div class="stat-label">Bugungi daromad (so'm)</div>
+    </div>
+</div>
+{% endblock %}

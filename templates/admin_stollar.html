@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Admin - Stollar{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h2>🪑 Stollar boshqarish</h2>
+    <div>
+        <a href="{{ url_for('admin_panel') }}" class="btn btn-back">← Admin Panel</a>
+        <form method="POST" action="{{ url_for('admin_stol_qoshish') }}" style="display:inline">
+            <button type="submit" class="btn btn-add-printer">➕ Stol qo'shish</button>
+        </form>
+    </div>
+</div>
+
+<div class="stollar-admin-grid">
+    {% for stol in stollar %}
+    <div class="stol-admin-card {{ 'band' if stol.holat == 'band' else 'bosh' }}">
+        <div class="stol-raqam">{{ stol.raqam }}</div>
+        <div class="stol-holat">{{ 'BAND' if stol.holat == 'band' else "BO'SH" }}</div>
+        {% if stol.holat == 'bosh' %}
+        <form method="POST" action="{{ url_for('admin_stol_ochirish', stol_id=stol.id) }}"
+              onsubmit="return confirm('Stol #{{ stol.raqam }} ni o\'chirishni tasdiqlaysizmi?')">
+            <button type="submit" class="btn-small btn-del">🗑️</button>
+        </form>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<p style="color:#7f8c8d; margin-top:15px; font-size:13px;">
+    ⚠️ Band stollarni o'chirib bo'lmaydi. Avval buyurtmani yoping.
+</p>
+{% endblock %}

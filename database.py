@@ -95,6 +95,16 @@ def init_db():
         )
     """)
 
+    # Admin jadvali
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS adminlar (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ism TEXT NOT NULL,
+            login TEXT NOT NULL UNIQUE,
+            parol TEXT NOT NULL
+        )
+    """)
+
     conn.commit()
 
     # Boshlang'ich ma'lumotlar
@@ -161,6 +171,13 @@ def init_db():
         cursor.executemany(
             "INSERT INTO ofitsiantlar (ism, login, parol) VALUES (?, ?, ?)",
             ofitsiantlar
+        )
+
+    cursor.execute("SELECT COUNT(*) FROM adminlar")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute(
+            "INSERT INTO adminlar (ism, login, parol) VALUES (?, ?, ?)",
+            ("Admin", "admin", "admin123")
         )
 
     conn.commit()

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Admin - Menyu{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h2>🍽️ Menyu boshqarish</h2>
+    <a href="{{ url_for('admin_panel') }}" class="btn btn-back">← Admin Panel</a>
+</div>
+
+<!-- Yangi taom qo'shish -->
+<div class="admin-form-card">
+    <h3>➕ Yangi taom qo'shish</h3>
+    <form method="POST" action="{{ url_for('admin_menyu_qoshish') }}" class="admin-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Taom nomi</label>
+                <input type="text" name="nomi" placeholder="Masalan: Lag'mon" required>
+            </div>
+            <div class="form-group">
+                <label>Narx (so'm)</label>
+                <input type="number" name="narx" placeholder="25000" required>
+            </div>
+            <div class="form-group">
+                <label>Bo'lim</label>
+                <select name="bolim" required>
+                    <option value="">-- Tanlang --</option>
+                    <option value="salatchi">🥗 Salatchi</option>
+                    <option value="shashlikchi">🍖 Shashlikchi</option>
+                    <option value="somsachi">🥟 Somsachi</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Kategoriya</label>
+                <select name="kategoriya_id">
+                    <option value="">-- Tanlang --</option>
+                    {% for kat in kategoriyalar %}
+                    <option value="{{ kat.id }}">{{ kat.nomi }} ({{ kat.bolim }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>&nbsp;</label>
+                <button type="submit" class="btn btn-add-printer">➕ Qo'shish</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Menyu ro'yxati -->
+<div class="admin-table-card">
+    <h3>📋 Menyu ({{ menyu|length }} ta taom)</h3>
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Nomi</th>
+                    <th>Narx</th>
+                    <th>Bo'lim</th>
+                    <th>Amallar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in menyu %}
+                <tr>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin_menyu_tahrirlash', menyu_id=item.id) }}" class="inline-form">
+                            <input type="text" name="nomi" value="{{ item.nomi }}" class="table-input">
+                    </td>
+                    <td>
+                            <input type="number" name="narx" value="{{ item.narx|int }}" class="table-input narx-input">
+                    </td>
+                    <td>
+                            <select name="bolim" class="table-select">
+                                <option value="salatchi" {{ 'selected' if item.bolim == 'salatchi' }}>🥗</option>
+                                <option value="shashlikchi" {{ 'selected' if item.bolim == 'shashlikchi' }}>🍖</option>
+                                <option value="somsachi" {{ 'selected' if item.bolim == 'somsachi' }}>🥟</option>
+                            </select>
+                    </td>
+                    <td class="actions-cell">
+                            <button type="submit" class="btn-small btn-save">💾</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('admin_menyu_ochirish', menyu_id=item.id) }}" style="display:inline"
+                              onsubmit="return confirm('O\'chirishni tasdiqlaysizmi?')">
+                            <button type="submit" class="btn-small btn-del">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

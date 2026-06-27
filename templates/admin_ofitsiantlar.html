@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Admin - Ofitsiantlar{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h2>👥 Ofitsiantlar boshqarish</h2>
+    <a href="{{ url_for('admin_panel') }}" class="btn btn-back">← Admin Panel</a>
+</div>
+
+<!-- Yangi ofitsiant -->
+<div class="admin-form-card">
+    <h3>➕ Yangi ofitsiant qo'shish</h3>
+    <form method="POST" action="{{ url_for('admin_ofitsiant_qoshish') }}" class="admin-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Ism</label>
+                <input type="text" name="ism" placeholder="Masalan: Sardor" required>
+            </div>
+            <div class="form-group">
+                <label>Login</label>
+                <input type="text" name="login" placeholder="Masalan: sardor" required>
+            </div>
+            <div class="form-group">
+                <label>Parol</label>
+                <input type="text" name="parol" placeholder="Masalan: 1234" required>
+            </div>
+            <div class="form-group">
+                <label>&nbsp;</label>
+                <button type="submit" class="btn btn-add-printer">➕ Qo'shish</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Ro'yxat -->
+<div class="admin-table-card">
+    <h3>📋 Ofitsiantlar ({{ ofitsiantlar|length }} ta)</h3>
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Ism</th>
+                    <th>Login</th>
+                    <th>Parol o'zgartirish</th>
+                    <th>Amallar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for o in ofitsiantlar %}
+                <tr>
+                    <td><strong>{{ o.ism }}</strong></td>
+                    <td><code>{{ o.login }}</code></td>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin_ofitsiant_parol', ofitsiant_id=o.id) }}" class="inline-form">
+                            <input type="text" name="parol" placeholder="Yangi parol" class="table-input" style="width:120px">
+                            <button type="submit" class="btn-small btn-save">💾</button>
+                        </form>
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin_ofitsiant_ochirish', ofitsiant_id=o.id) }}" style="display:inline"
+                              onsubmit="return confirm('{{ o.ism }} ni o\'chirishni tasdiqlaysizmi?')">
+                            <button type="submit" class="btn-small btn-del">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="admin-note">
+    <p>⚠️ Ofitsiantlar o'z parolini o'zgartira <strong>olmaydi</strong>. Faqat admin o'zgartira oladi.</p>
+</div>
+{% endblock %}

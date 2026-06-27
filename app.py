@@ -401,6 +401,325 @@ def api_print(buyurtma_id):
     return jsonify({'natijalar': natijalar})
 
 
+# ===== ADMIN PANEL =====
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        login_val = request.form.get('login', '').strip()
+        parol = request.form.get('parol', '').strip()
+
+        conn = get_connection()
+        admin = conn.execute(
+            "SELECT * FROM adminlar WHERE login=? AND parol=?",
+            (login_val, parol)
+        ).fetchone()
+        conn.close()
+
+        if admin:
+            session['admin_id'] = admin['id']
+            session['admin_ism'] = admin['ism']
+            return redirect(url_for('admin_panel'))
+        else:
+            flash('Login yoki parol noto\'g\'ri!', 'error')
+
+    return render_template('admin_login.html')
+
+
+@app.route('/admin')
+def admin_panel():
+    """Admin bosh sahifa"""
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+
+    conn = get_connection()
+    stats = {
+        'stollar': conn.execute("SELECT COUNT(*) FROM stollar").fetchone()[0],
+        'ofitsiantlar': conn.execute("SELECT COUNT(*) FROM ofitsiantlar").fetchone()[0],
+        'menyu': conn.execute("SELECT COUNT(*) FROM menyu").fetchone()[0],
+        'printerlar': conn.execute("SELECT COUNT(*) FROM printerlar").fetchone()[0],
+        'bugungi_buyurtmalar': conn.execute(
+            "SELECT COUNT(*) FROM buyurtmalar WHERE date(sana)=date('now','localtime')"
+        ).fetchone()[0],
+        'bugungi_daromad': conn.execute(
+            "SELECT COALESCE(SUM(jami_summa),0) FROM buyurtmalar WHERE date(sana)=date('now','localtime') AND holat='yopiq'"
+        ).fetchone()[0],
+    }
+    conn.close()
+
+    return render_template('admin_panel.html', stats=stats)
+
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin_id', None)
+    session.pop('admin_ism', None)
+    return redirect(url_for('admin_login'))
+
+
+# --- ADMIN: Menyu boshqarish ---
+
+@app.route('/admin/menyu')
+def admin_menyu():
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+
+    conn = get_connection()
+    menyu = conn.execute("SELECT * FROM menyu ORDER BY bolim, nomi").fetchall()
+    kategoriyalar = conn.execute("SELECT * FROM kategoriyalar").fetchall()
+    conn.close()
+
+    return render_template('admin_menyu.html', menyu=menyu, kategoriyalar=kategoriyalar)
+
+
+@app.route('/admin/menyu/qoshish', methods=['POST'])
+def admin_menyu_qoshish():
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+
+    nomi = request.form.get('nomi', '').strip()
+    narx = request.form.get('narx', '0').strip()
+    kategoriya_id = request.form.get('kategoriya_id', '').strip()
+    bolim = request.form.get('bolim', '').strip()
+
+    if not nomi or not narx or not bolim:
+        flash('Barcha maydonlarni to\'ldiring!', 'error')
+        return redirect(url_for('admin_menyu'))
+
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO menyu (nomi, narx, kategoriya_id, bolim) VALUES (?, ?, ?, ?)",
+        (nomi, float(narx), int(kategoriya_id) if kategoriya_id else None, bolim)
+    )
+    conn.commit()
+    conn.close()
+
+    flash(f'"{nomi}" menyuga qo\'shildi!', 'success')
+    return redirect(url_for('admin_menyu'))
+
+
+@app.route('/admin/menyu/ochirish/<int:menyu_id>', methods=['POST'])
+def admin_menyu_ochirish(menyu_id):
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+
+    conn = get_connection()
+    conn.execute("DELETE FROM menyu WHERE id=?", (menyu_id,))
+    conn.commit()
+    conn.close()
+
+    flash('Taom o\'chirildi!', 'success')
+    return redirect(url_for('admin_menyu'))
+
+
+@app.route('/admin/menyu/tahrirlash/<int:menyu_id>', methods=['POST'])
+def admin_menyu_tahrirlash(menyu_id):
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+
+    nomi = request.form.get('nomi', '').strip()
+    narx = request.form.get('narx', '0').strip()
+    bolim = request.form.get('bolim', '').strip()
+
+    conn = get_connection()
+    conn.execute(
+        "UPDATE menyu SET nomi=?, narx=?, bolim=? WHERE id=?",
+        (nomi, float(narx), bolim, menyu_id)
+    )
+    conn.commit()
+    conn.close()
+
+    flash('Taom yangilandi!', 'success')
+    return redirect(url_for('admin_menyu'))
+
+
+# --- ADMIN: Stollar boshqarish ---
+
+@app.route('/admin/stollar')
+def admin_stollar():
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+
+    conn = get_connection()
+    stollar_list = conn.execute("SELECT * FROM stollar ORDER BY raqam").fetchall()
+    conn.close()
+
+    return render_template('admin_stollar.html', stollar=stollar_list)
+
+
+@app.route('/admin/stol/qoshish', methods=['POST'])
+def admin_stol_qoshish():
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+
+    conn = get_connection()
+    max_raqam = conn.execute("SELECT COALESCE(MAX(raqam),0) FROM stollar").fetchone()[0]
+    conn.execute("INSERT INTO stollar (raqam) VALUES (?)", (max_raqam + 1,))
+    conn.commit()
+    conn.close()
+
+    flash(f'Stol #{max_raqam + 1} qo\'shildi!', 'success')
+    return redirect(url_for('admin_stollar'))
+
+
+@app.route('/admin/stol/ochirish/<int:stol_id>', methods=['POST'])
+def admin_stol_ochirish(stol_id):
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+
+    conn = get_connection()
+    conn.execute("DELETE FROM stollar WHERE id=?", (stol_id,))
+    conn.commit()
+    conn.close()
+
+    flash('Stol o\'chirildi!', 'success')
+    return redirect(url_for('admin_stollar'))
+
+
+# --- ADMIN: Ofitsiantlar boshqarish ---
+
+@app.route('/admin/ofitsiantlar')
+def admin_ofitsiantlar():
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+
+    conn = get_connection()
+    ofitsiantlar_list = conn.execute("SELECT * FROM ofitsiantlar ORDER BY ism").fetchall()
+    conn.close()
+
+    return render_template('admin_ofitsiantlar.html', ofitsiantlar=ofitsiantlar_list)
+
+
+@app.route('/admin/ofitsiant/qoshish', methods=['POST'])
+def admin_ofitsiant_qoshish():
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+
+    ism = request.form.get('ism', '').strip()
+    login_val = request.form.get('login', '').strip()
+    parol = request.form.get('parol', '').strip()
+
+    if not ism or not login_val or not parol:
+        flash('Barcha maydonlarni to\'ldiring!', 'error')
+        return redirect(url_for('admin_ofitsiantlar'))
+
+    conn = get_connection()
+    # Login takrorlanmasin
+    mavjud = conn.execute("SELECT * FROM ofitsiantlar WHERE login=?", (login_val,)).fetchone()
+    if mavjud:
+        conn.close()
+        flash('Bu login allaqachon mavjud!', 'error')
+        return redirect(url_for('admin_ofitsiantlar'))
+
+    conn.execute(
+        "INSERT INTO ofitsiantlar (ism, login, parol) VALUES (?, ?, ?)",
+        (ism, login_val, parol)
+    )
+    conn.commit()
+    conn.close()
+
+    flash(f'Ofitsiant "{ism}" qo\'shildi!', 'success')
+    return redirect(url_for('admin_ofitsiantlar'))
+
+
+@app.route('/admin/ofitsiant/ochirish/<int:ofitsiant_id>', methods=['POST'])
+def admin_ofitsiant_ochirish(ofitsiant_id):
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+
+    conn = get_connection()
+    conn.execute("DELETE FROM ofitsiantlar WHERE id=?", (ofitsiant_id,))
+    conn.commit()
+    conn.close()
+
+    flash('Ofitsiant o\'chirildi!', 'success')
+    return redirect(url_for('admin_ofitsiantlar'))
+
+
+@app.route('/admin/ofitsiant/parol/<int:ofitsiant_id>', methods=['POST'])
+def admin_ofitsiant_parol(ofitsiant_id):
+    """Faqat admin parol o'zgartira oladi"""
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+
+    yangi_parol = request.form.get('parol', '').strip()
+    if not yangi_parol:
+        flash('Parol bo\'sh bo\'lishi mumkin emas!', 'error')
+        return redirect(url_for('admin_ofitsiantlar'))
+
+    conn = get_connection()
+    conn.execute("UPDATE ofitsiantlar SET parol=? WHERE id=?", (yangi_parol, ofitsiant_id))
+    conn.commit()
+    conn.close()
+
+    flash('Parol o\'zgartirildi!', 'success')
+    return redirect(url_for('admin_ofitsiantlar'))
+
+
+# --- ADMIN: Hisobot ---
+
+@app.route('/admin/hisobot')
+def admin_hisobot():
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+
+    conn = get_connection()
+
+    # Bugungi sotuv
+    bugungi = conn.execute("""
+        SELECT COALESCE(SUM(jami_summa),0) as jami, COUNT(*) as soni
+        FROM buyurtmalar
+        WHERE date(sana)=date('now','localtime') AND holat='yopiq'
+    """).fetchone()
+
+    # Oylik sotuv
+    oylik = conn.execute("""
+        SELECT COALESCE(SUM(jami_summa),0) as jami, COUNT(*) as soni
+        FROM buyurtmalar
+        WHERE strftime('%Y-%m', sana)=strftime('%Y-%m', 'now','localtime') AND holat='yopiq'
+    """).fetchone()
+
+    # Eng ko'p sotilgan taomlar
+    top_taomlar = conn.execute("""
+        SELECT m.nomi, m.bolim, SUM(bt.soni) as jami_soni, SUM(bt.soni * bt.narx) as jami_summa
+        FROM buyurtma_tafsilot bt
+        JOIN menyu m ON bt.menyu_id = m.id
+        JOIN buyurtmalar b ON bt.buyurtma_id = b.id
+        WHERE b.holat='yopiq'
+        GROUP BY bt.menyu_id
+        ORDER BY jami_soni DESC
+        LIMIT 10
+    """).fetchall()
+
+    # Ofitsiantlar bo'yicha
+    ofitsiant_stat = conn.execute("""
+        SELECT o.ism, COUNT(b.id) as buyurtmalar, COALESCE(SUM(b.jami_summa),0) as jami
+        FROM ofitsiantlar o
+        LEFT JOIN buyurtmalar b ON o.id = b.ofitsiant_id AND b.holat='yopiq'
+        GROUP BY o.id
+        ORDER BY jami DESC
+    """).fetchall()
+
+    # Oxirgi 10 buyurtma
+    oxirgi = conn.execute("""
+        SELECT b.*, s.raqam as stol_raqam, o.ism as ofitsiant_ism
+        FROM buyurtmalar b
+        JOIN stollar s ON b.stol_id = s.id
+        JOIN ofitsiantlar o ON b.ofitsiant_id = o.id
+        ORDER BY b.sana DESC
+        LIMIT 10
+    """).fetchall()
+
+    conn.close()
+
+    return render_template('admin_hisobot.html',
+                           bugungi=bugungi,
+                           oylik=oylik,
+                           top_taomlar=top_taomlar,
+                           ofitsiant_stat=ofitsiant_stat,
+                           oxirgi=oxirgi)
+
+
 with app.app_context():
     init_db()
     # Tekshirish: ofitsiantlar bormi

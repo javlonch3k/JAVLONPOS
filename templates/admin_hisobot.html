@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Admin - Hisobot{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h2>📊 Hisobot</h2>
+    <a href="{{ url_for('admin_panel') }}" class="btn btn-back">← Admin Panel</a>
+</div>
+
+<!-- Daromad statistikasi -->
+<div class="stats-grid">
+    <div class="stat-card highlight">
+        <div class="stat-icon">📅</div>
+        <div class="stat-value">{{ "{:,.0f}".format(bugungi.jami) }}</div>
+        <div class="stat-label">Bugungi daromad (so'm)</div>
+        <div class="stat-sub">{{ bugungi.soni }} ta buyurtma</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📆</div>
+        <div class="stat-value">{{ "{:,.0f}".format(oylik.jami) }}</div>
+        <div class="stat-label">Oylik daromad (so'm)</div>
+        <div class="stat-sub">{{ oylik.soni }} ta buyurtma</div>
+    </div>
+</div>
+
+<!-- Eng ko'p sotilgan -->
+<div class="admin-table-card">
+    <h3>🏆 Eng ko'p sotilgan taomlar</h3>
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Taom</th>
+                    <th>Bo'lim</th>
+                    <th>Soni</th>
+                    <th>Jami summa</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in top_taomlar %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><strong>{{ item.nomi }}</strong></td>
+                    <td>
+                        {% if item.bolim == 'salatchi' %}🥗
+                        {% elif item.bolim == 'shashlikchi' %}🍖
+                        {% else %}🥟{% endif %}
+                        {{ item.bolim }}
+                    </td>
+                    <td>{{ item.jami_soni }}</td>
+                    <td>{{ "{:,.0f}".format(item.jami_summa) }} so'm</td>
+                </tr>
+                {% endfor %}
+                {% if not top_taomlar %}
+                <tr><td colspan="5" style="text-align:center;color:#999">Ma'lumot yo'q</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Ofitsiantlar -->
+<div class="admin-table-card">
+    <h3>👥 Ofitsiantlar statistikasi</h3>
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Ofitsiant</th>
+                    <th>Buyurtmalar</th>
+                    <th>Jami daromad</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in ofitsiant_stat %}
+                <tr>
+                    <td><strong>{{ item.ism }}</strong></td>
+                    <td>{{ item.buyurtmalar }}</td>
+                    <td>{{ "{:,.0f}".format(item.jami) }} so'm</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Oxirgi buyurtmalar -->
+<div class="admin-table-card">
+    <h3>🕐 Oxirgi buyurtmalar</h3>
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Stol</th>
+                    <th>Ofitsiant</th>
+                    <th>Summa</th>
+                    <th>Holat</th>
+                    <th>Sana</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in oxirgi %}
+                <tr>
+                    <td>{{ b.id }}</td>
+                    <td>Stol #{{ b.stol_raqam }}</td>
+                    <td>{{ b.ofitsiant_ism }}</td>
+                    <td>{{ "{:,.0f}".format(b.jami_summa) }} so'm</td>
+                    <td>
+                        {% if b.holat == 'ochiq' %}
+                        <span style="color:#e67e22">🟡 Ochiq</span>
+                        {% else %}
+                        <span style="color:#27ae60">🟢 Yopiq</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ b.sana }}</td>
+                </tr>
+                {% endfor %}
+                {% if not oxirgi %}
+                <tr><td colspan="6" style="text-align:center;color:#999">Buyurtmalar yo'q</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

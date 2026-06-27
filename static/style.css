@@ -822,3 +822,298 @@ body {
         min-width: unset;
     }
 }
+
+
+
+/* ===== ADMIN PANEL ===== */
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.admin-header h2 {
+    font-size: 20px;
+    color: #2c3e50;
+}
+
+.admin-nav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.admin-nav-btn {
+    padding: 8px 14px;
+    background: #3498db;
+    color: white;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.admin-nav-btn.logout {
+    background: #e74c3c;
+}
+
+.admin-nav-btn:active {
+    opacity: 0.8;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px 15px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.stat-card.highlight {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.stat-icon {
+    font-size: 28px;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.stat-label {
+    font-size: 11px;
+    opacity: 0.8;
+    margin-top: 3px;
+}
+
+.stat-sub {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-top: 3px;
+}
+
+/* Admin Forms */
+.admin-form-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.admin-form-card h3 {
+    margin-bottom: 15px;
+    color: #2c3e50;
+    font-size: 16px;
+}
+
+.admin-form .form-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.admin-form .form-group {
+    flex: 1;
+    min-width: 130px;
+}
+
+.admin-form .form-group label {
+    display: block;
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.admin-form .form-group input,
+.admin-form .form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+/* Admin Tables */
+.admin-table-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.admin-table-card h3 {
+    margin-bottom: 15px;
+    color: #2c3e50;
+    font-size: 16px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.admin-table th {
+    background: #f8f9fa;
+    padding: 10px 8px;
+    text-align: left;
+    font-weight: 600;
+    color: #555;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.admin-table td {
+    padding: 8px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+}
+
+.admin-table tr:hover {
+    background: #f8f9fa;
+}
+
+.table-input {
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 13px;
+    width: 100%;
+}
+
+.narx-input {
+    width: 100px;
+}
+
+.table-select {
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 13px;
+}
+
+.inline-form {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.actions-cell {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.btn-small {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 5px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.btn-save {
+    background: #27ae60;
+    color: white;
+}
+
+.btn-del {
+    background: #e74c3c;
+    color: white;
+}
+
+/* Stollar Admin Grid */
+.stollar-admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.stol-admin-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 10px;
+    border-radius: 12px;
+    color: white;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+}
+
+.stol-admin-card.bosh {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+}
+
+.stol-admin-card.band {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+
+.stol-admin-card .stol-raqam {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.stol-admin-card .stol-holat {
+    font-size: 11px;
+    margin: 5px 0;
+}
+
+.admin-note {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 15px;
+    font-size: 13px;
+}
+
+@media (max-width: 768px) {
+    .admin-nav {
+        width: 100%;
+    }
+
+    .admin-nav-btn {
+        flex: 1;
+        text-align: center;
+        padding: 10px 8px;
+        font-size: 12px;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .admin-form .form-row {
+        flex-direction: column;
+    }
+
+    .admin-form .form-group {
+        min-width: unset;
+    }
+
+    .stollar-admin-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
