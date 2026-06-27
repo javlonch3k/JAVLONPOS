@@ -22,26 +22,36 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        login_val = request.form.get('login', '').strip()
-        parol = request.form.get('parol', '').strip()
+        # JSON (PIN pad) yoki form
+        if request.is_json:
+            data = request.json
+            pin = data.get('pin', '').strip()
+        else:
+            pin = request.form.get('pin', '').strip()
 
-        if not login_val or not parol:
-            flash('Login va parolni kiriting!', 'error')
+        if not pin:
+            if request.is_json:
+                return jsonify({'success': False, 'error': 'PIN kiriting!'})
+            flash('PIN kiriting!', 'error')
             return render_template('login.html')
 
         conn = get_connection()
         ofitsiant = conn.execute(
-            "SELECT * FROM ofitsiantlar WHERE login=? AND parol=?",
-            (login_val, parol)
+            "SELECT * FROM ofitsiantlar WHERE pin=?",
+            (pin,)
         ).fetchone()
         conn.close()
 
         if ofitsiant:
             session['ofitsiant_id'] = ofitsiant['id']
             session['ofitsiant_ism'] = ofitsiant['ism']
+            if request.is_json:
+                return jsonify({'success': True, 'redirect': url_for('stollar')})
             return redirect(url_for('stollar'))
         else:
-            flash('Login yoki parol noto\'g\'ri!', 'error')
+            if request.is_json:
+                return jsonify({'success': False, 'error': 'PIN kod noto\'g\'ri!'})
+            flash('PIN kod noto\'g\'ri!', 'error')
 
     return render_template('login.html')
 
@@ -281,9 +291,9 @@ def yopish(buyurtma_id):
 
 @app.route('/printerlar')
 def printerlar():
-    """Printerlar ro'yxati"""
-    if 'ofitsiant_id' not in session:
-        return redirect(url_for('login'))
+    """Printerlar ro'yxati - faqat admin"""
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
 
     conn = get_connection()
     printerlar_list = conn.execute("SELECT * FROM printerlar ORDER BY bolim, nomi").fetchall()
@@ -294,9 +304,9 @@ def printerlar():
 
 @app.route('/printer/qoshish', methods=['POST'])
 def printer_qoshish():
-    """Yangi printer qo'shish"""
-    if 'ofitsiant_id' not in session:
-        return redirect(url_for('login'))
+    """Yangi printer qo'shish - faqat admin"""
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
 
     nomi = request.form.get('nomi', '').strip()
     ip_manzil = request.form.get('ip_manzil', '').strip()
@@ -322,9 +332,9 @@ def printer_qoshish():
 
 @app.route('/printer/ochirish/<int:printer_id>', methods=['POST'])
 def printer_ochirish(printer_id):
-    """Printerni o'chirish"""
-    if 'ofitsiant_id' not in session:
-        return redirect(url_for('login'))
+    """Printerni o'chirish - faqat admin"""
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
 
     conn = get_connection()
     conn.execute("DELETE FROM printerlar WHERE id=?", (printer_id,))
@@ -337,9 +347,9 @@ def printer_ochirish(printer_id):
 
 @app.route('/printer/toggle/<int:printer_id>', methods=['POST'])
 def printer_toggle(printer_id):
-    """Printerni yoqish/o'chirish"""
-    if 'ofitsiant_id' not in session:
-        return redirect(url_for('login'))
+    """Printerni yoqish/o'chirish - faqat admin"""
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
 
     conn = get_connection()
     printer = conn.execute("SELECT * FROM printerlar WHERE id=?", (printer_id,)).fetchone()
@@ -354,9 +364,9 @@ def printer_toggle(printer_id):
 
 @app.route('/printer/test/<int:printer_id>', methods=['POST'])
 def printer_test(printer_id):
-    """Printerni test qilish"""
-    if 'ofitsiant_id' not in session:
-        return jsonify({'error': 'Login qiling'}), 401
+    """Printerni test qilish - faqat admin"""
+    if 'admin_id' not in session:
+        return jsonify({'error': 'Admin login qiling'}), 401
 
     conn = get_connection()
     printer = conn.execute("SELECT * FROM printerlar WHERE id=?", (printer_id,)).fetchone()
@@ -371,7 +381,7 @@ def printer_test(printer_id):
 
 @app.route('/api/print/<int:buyurtma_id>', methods=['POST'])
 def api_print(buyurtma_id):
-    """Buyurtma chekllarini printerlarga yuborish"""
+    """Buyurtma chekllarini printerlarga yuborish - faqat yangi itemlar"""
     if 'ofitsiant_id' not in session:
         return jsonify({'error': 'Login qiling'}), 401
 
@@ -383,21 +393,39 @@ def api_print(buyurtma_id):
 
     stol = conn.execute("SELECT * FROM stollar WHERE id=?", (buyurtma_row['stol_id'],)).fetchone()
 
+    # Faqat chop etilmagan itemlarni olish
     items = conn.execute("""
         SELECT bt.*, m.nomi FROM buyurtma_tafsilot bt
         JOIN menyu m ON bt.menyu_id = m.id
-        WHERE bt.buyurtma_id = ?
+        WHERE bt.buyurtma_id = ? AND bt.chop_etilgan = 0
     """, (buyurtma_id,)).fetchall()
-    conn.close()
 
     if not items:
-        return jsonify({'error': 'Buyurtma bo\'sh'}), 400
+        conn.close()
+        return jsonify({'error': 'Yangi buyurtma yo\'q! Allaqachon yuborilgan.'}), 400
 
     tafsilotlar = [dict(item) for item in items]
     natijalar = print_buyurtma_cheklari(
         buyurtma_id, stol['raqam'], session['ofitsiant_ism'], tafsilotlar
     )
 
+    # Muvaffaqiyatli yuborilganlarni belgilash
+    muvaffaqiyatli_bolimlar = set()
+    for n in natijalar:
+        if n['success']:
+            muvaffaqiyatli_bolimlar.add(n['bolim'])
+
+    # Chop etilgan deb belgilash
+    if muvaffaqiyatli_bolimlar:
+        for item in items:
+            if item['bolim'] in muvaffaqiyatli_bolimlar:
+                conn.execute(
+                    "UPDATE buyurtma_tafsilot SET chop_etilgan=1 WHERE id=?",
+                    (item['id'],)
+                )
+        conn.commit()
+
+    conn.close()
     return jsonify({'natijalar': natijalar})
 
 
@@ -596,29 +624,28 @@ def admin_ofitsiant_qoshish():
         return redirect(url_for('admin_login'))
 
     ism = request.form.get('ism', '').strip()
-    login_val = request.form.get('login', '').strip()
-    parol = request.form.get('parol', '').strip()
+    pin = request.form.get('pin', '').strip()
 
-    if not ism or not login_val or not parol:
-        flash('Barcha maydonlarni to\'ldiring!', 'error')
+    if not ism or not pin:
+        flash('Ism va PIN kiriting!', 'error')
         return redirect(url_for('admin_ofitsiantlar'))
 
     conn = get_connection()
-    # Login takrorlanmasin
-    mavjud = conn.execute("SELECT * FROM ofitsiantlar WHERE login=?", (login_val,)).fetchone()
+    # PIN takrorlanmasin
+    mavjud = conn.execute("SELECT * FROM ofitsiantlar WHERE pin=?", (pin,)).fetchone()
     if mavjud:
         conn.close()
-        flash('Bu login allaqachon mavjud!', 'error')
+        flash('Bu PIN allaqachon mavjud!', 'error')
         return redirect(url_for('admin_ofitsiantlar'))
 
     conn.execute(
-        "INSERT INTO ofitsiantlar (ism, login, parol) VALUES (?, ?, ?)",
-        (ism, login_val, parol)
+        "INSERT INTO ofitsiantlar (ism, pin) VALUES (?, ?)",
+        (ism, pin)
     )
     conn.commit()
     conn.close()
 
-    flash(f'Ofitsiant "{ism}" qo\'shildi!', 'success')
+    flash(f'Ofitsiant "{ism}" qo\'shildi! PIN: {pin}', 'success')
     return redirect(url_for('admin_ofitsiantlar'))
 
 
@@ -638,21 +665,28 @@ def admin_ofitsiant_ochirish(ofitsiant_id):
 
 @app.route('/admin/ofitsiant/parol/<int:ofitsiant_id>', methods=['POST'])
 def admin_ofitsiant_parol(ofitsiant_id):
-    """Faqat admin parol o'zgartira oladi"""
+    """Faqat admin PIN o'zgartira oladi"""
     if 'admin_id' not in session:
         return redirect(url_for('admin_login'))
 
-    yangi_parol = request.form.get('parol', '').strip()
-    if not yangi_parol:
-        flash('Parol bo\'sh bo\'lishi mumkin emas!', 'error')
+    yangi_pin = request.form.get('pin', '').strip()
+    if not yangi_pin:
+        flash('PIN bo\'sh bo\'lishi mumkin emas!', 'error')
         return redirect(url_for('admin_ofitsiantlar'))
 
     conn = get_connection()
-    conn.execute("UPDATE ofitsiantlar SET parol=? WHERE id=?", (yangi_parol, ofitsiant_id))
+    # PIN takrorlanmasin
+    mavjud = conn.execute("SELECT * FROM ofitsiantlar WHERE pin=? AND id!=?", (yangi_pin, ofitsiant_id)).fetchone()
+    if mavjud:
+        conn.close()
+        flash('Bu PIN boshqa ofitsiantda mavjud!', 'error')
+        return redirect(url_for('admin_ofitsiantlar'))
+
+    conn.execute("UPDATE ofitsiantlar SET pin=? WHERE id=?", (yangi_pin, ofitsiant_id))
     conn.commit()
     conn.close()
 
-    flash('Parol o\'zgartirildi!', 'success')
+    flash('PIN o\'zgartirildi!', 'success')
     return redirect(url_for('admin_ofitsiantlar'))
 
 

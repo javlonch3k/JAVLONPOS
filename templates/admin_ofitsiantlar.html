@@ -17,12 +17,8 @@
                 <input type="text" name="ism" placeholder="Masalan: Sardor" required>
             </div>
             <div class="form-group">
-                <label>Login</label>
-                <input type="text" name="login" placeholder="Masalan: sardor" required>
-            </div>
-            <div class="form-group">
-                <label>Parol</label>
-                <input type="text" name="parol" placeholder="Masalan: 1234" required>
+                <label>PIN kod (raqamlar)</label>
+                <input type="text" name="pin" placeholder="Masalan: 1234" pattern="[0-9]+" required>
             </div>
             <div class="form-group">
                 <label>&nbsp;</label>
@@ -40,8 +36,8 @@
             <thead>
                 <tr>
                     <th>Ism</th>
-                    <th>Login</th>
-                    <th>Parol o'zgartirish</th>
+                    <th>PIN kod</th>
+                    <th>PIN o'zgartirish</th>
                     <th>Amallar</th>
                 </tr>
             </thead>
@@ -49,10 +45,10 @@
                 {% for o in ofitsiantlar %}
                 <tr>
                     <td><strong>{{ o.ism }}</strong></td>
-                    <td><code>{{ o.login }}</code></td>
+                    <td><code style="font-size:16px; background:#f0f0f0; padding:3px 8px; border-radius:5px;">{{ o.pin }}</code></td>
                     <td>
                         <form method="POST" action="{{ url_for('admin_ofitsiant_parol', ofitsiant_id=o.id) }}" class="inline-form">
-                            <input type="text" name="parol" placeholder="Yangi parol" class="table-input" style="width:120px">
+                            <input type="text" name="pin" placeholder="Yangi PIN" class="table-input" style="width:100px" pattern="[0-9]+">
                             <button type="submit" class="btn-small btn-save">💾</button>
                         </form>
                     </td>
@@ -70,6 +66,7 @@
 </div>
 
 <div class="admin-note">
-    <p>⚠️ Ofitsiantlar o'z parolini o'zgartira <strong>olmaydi</strong>. Faqat admin o'zgartira oladi.</p>
+    <p>⚠️ Ofitsiantlar PIN kodni o'zgartira <strong>olmaydi</strong>. Faqat admin o'zgartira oladi.</p>
+    <p>📱 Ofitsiant kirish uchun faqat PIN kodini kiritadi (login yo'q).</p>
 </div>
 {% endblock %}

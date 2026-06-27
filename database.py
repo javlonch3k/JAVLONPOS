@@ -49,8 +49,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS ofitsiantlar (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             ism TEXT NOT NULL,
-            login TEXT NOT NULL UNIQUE,
-            parol TEXT NOT NULL
+            pin TEXT NOT NULL UNIQUE
         )
     """)
 
@@ -77,6 +76,7 @@ def init_db():
             soni INTEGER DEFAULT 1,
             narx REAL,
             bolim TEXT,  -- salatchi, shashlikchi, somsachi
+            chop_etilgan INTEGER DEFAULT 0,  -- 0=yuborilmagan, 1=yuborilgan
             FOREIGN KEY (buyurtma_id) REFERENCES buyurtmalar(id),
             FOREIGN KEY (menyu_id) REFERENCES menyu(id)
         )
@@ -164,12 +164,12 @@ def init_db():
     cursor.execute("SELECT COUNT(*) FROM ofitsiantlar")
     if cursor.fetchone()[0] == 0:
         ofitsiantlar = [
-            ("Sardor", "sardor", "1234"),
-            ("Malika", "malika", "1234"),
-            ("Bobur", "bobur", "1234"),
+            ("Sardor", "1234"),
+            ("Malika", "5678"),
+            ("Bobur", "9012"),
         ]
         cursor.executemany(
-            "INSERT INTO ofitsiantlar (ism, login, parol) VALUES (?, ?, ?)",
+            "INSERT INTO ofitsiantlar (ism, pin) VALUES (?, ?)",
             ofitsiantlar
         )
 

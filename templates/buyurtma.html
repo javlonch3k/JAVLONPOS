@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="page-header">
-    <h2>📋 Stol #{{ stol.raqam }} | Buyurtma #{{ buyurtma_id }}</h2>
+    <h2>📋 Stol #{{ stol.raqam }}</h2>
     <a href="{{ url_for('stollar') }}" class="btn btn-back">← Stollarga</a>
 </div>
 
@@ -61,10 +61,14 @@
         <div class="buyurtma-footer">
             <div id="jami-summa" class="jami-summa">JAMI: {{ "{:,.0f}".format(jami) }} so'm</div>
 
+            <!-- Print status -->
+            <div id="print-status" class="print-status" style="display:none"></div>
+
             <div class="buyurtma-buttons">
-                <button class="btn btn-print-all" onclick="printAll({{ buyurtma_id }})">🖨️ PRINTERLARGA YUBORISH</button>
-                <a href="{{ url_for('chek', buyurtma_id=buyurtma_id) }}" class="btn btn-chek">📋 CHEKNI KO'RISH</a>
-                <form method="POST" action="{{ url_for('yopish', buyurtma_id=buyurtma_id) }}" style="display:inline">
+                <button id="btn-print" class="btn btn-print-all" onclick="printAll({{ buyurtma_id }})">
+                    🖨️ OSHXONAGA YUBORISH
+                </button>
+                <form method="POST" action="{{ url_for('yopish', buyurtma_id=buyurtma_id) }}" style="width:100%">
                     <button type="submit" class="btn btn-yopish" onclick="return confirm('Hisobni yopishni tasdiqlaysizmi?')">✅ HISOBNI YOPISH</button>
                 </form>
             </div>
@@ -76,6 +80,7 @@
 {% block scripts %}
 <script>
 const buyurtmaId = {{ buyurtma_id }};
+let printedItems = new Set(); // Yuborilgan itemlar
 
 function filterMenu(katId) {
     const items = document.querySelectorAll('.menyu-item');
@@ -86,8 +91,6 @@ function filterMenu(katId) {
             item.style.display = item.dataset.kategoriya === katId ? 'flex' : 'none';
         }
     });
-
-    // Active button
     document.querySelectorAll('.kat-btn').forEach(btn => btn.classList.remove('active'));
     event.target.classList.add('active');
 }
@@ -101,6 +104,9 @@ function qoshish(buyurtmaId, menyuId) {
     .then(res => res.json())
     .then(data => {
         yangilash(data);
+        // Yangi item qo'shildi — print tugmasi faollashsin
+        document.getElementById('btn-print').classList.remove('printed');
+        document.getElementById('btn-print').textContent = '🖨️ OSHXONAGA YUBORISH';
     });
 }
 
@@ -141,25 +147,59 @@ function yangilash(data) {
 }
 
 function printAll(buyurtmaId) {
+    const btn = document.getElementById('btn-print');
+    const status = document.getElementById('print-status');
+
+    // Allaqachon yuborilgan bo'lsa
+    if (btn.classList.contains('printed')) {
+        if (!confirm('Chek allaqachon yuborilgan! Qayta yuborishni xohlaysizmi?')) {
+            return;
+        }
+    }
+
+    btn.textContent = '⏳ Yuborilmoqda...';
+    btn.disabled = true;
+
     fetch('/api/print/' + buyurtmaId, {method: 'POST'})
     .then(res => res.json())
     .then(data => {
+        btn.disabled = false;
+
         if (data.error) {
-            alert('❌ ' + data.error);
+            btn.textContent = '🖨️ OSHXONAGA YUBORISH';
+            status.innerHTML = '❌ ' + data.error;
+            status.className = 'print-status error';
+            status.style.display = 'block';
             return;
         }
+
         if (data.natijalar.length === 0) {
-            alert('⚠️ Printer sozlanmagan! Printerlar sahifasidan qo\'shing.');
+            btn.textContent = '🖨️ OSHXONAGA YUBORISH';
+            status.innerHTML = '⚠️ Printer sozlanmagan!';
+            status.className = 'print-status error';
+            status.style.display = 'block';
             return;
         }
-        let msg = '🖨️ Natijalar:\n\n';
+
+        // Muvaffaqiyatli
+        let allSuccess = data.natijalar.every(n => n.success);
+        btn.textContent = '✅ YUBORILDI';
+        btn.classList.add('printed');
+
+        let html = '';
         data.natijalar.forEach(n => {
-            msg += (n.success ? '✅' : '❌') + ' ' + n.printer + ' (' + n.bolim + '): ' + n.xabar + '\n';
+            html += '<div>' + (n.success ? '✅' : '❌') + ' ' + n.printer + '</div>';
         });
-        alert(msg);
+        status.innerHTML = html;
+        status.className = 'print-status ' + (allSuccess ? 'success' : 'partial');
+        status.style.display = 'block';
     })
     .catch(err => {
-        alert('❌ Xatolik: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = '🖨️ OSHXONAGA YUBORISH';
+        status.innerHTML = '❌ Xatolik: ' + err.message;
+        status.className = 'print-status error';
+        status.style.display = 'block';
     });
 }
 </script>

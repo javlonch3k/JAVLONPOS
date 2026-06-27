@@ -2,25 +2,89 @@
 {% block title %}Kirish - Restoran POS{% endblock %}
 
 {% block content %}
-<div class="login-container">
-    <div class="login-card">
-        <div class="login-header">
+<div class="pin-container">
+    <div class="pin-card">
+        <div class="pin-header">
             <h1>🍽️</h1>
             <h2>RESTORAN POS</h2>
-            <p>Ofitsiant tizimi</p>
+            <p>PIN kod kiriting</p>
         </div>
 
-        <form method="POST" class="login-form">
-            <div class="form-group">
-                <label>Login</label>
-                <input type="text" name="login" placeholder="Login kiriting" required autofocus>
+        <div class="pin-display">
+            <div id="pin-dots" class="pin-dots">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
             </div>
-            <div class="form-group">
-                <label>Parol</label>
-                <input type="password" name="parol" placeholder="Parol kiriting" required>
-            </div>
-            <button type="submit" class="btn btn-login">KIRISH</button>
-        </form>
+        </div>
+
+        <div class="pin-keypad">
+            <button class="pin-key" onclick="pinInput('1')">1</button>
+            <button class="pin-key" onclick="pinInput('2')">2</button>
+            <button class="pin-key" onclick="pinInput('3')">3</button>
+            <button class="pin-key" onclick="pinInput('4')">4</button>
+            <button class="pin-key" onclick="pinInput('5')">5</button>
+            <button class="pin-key" onclick="pinInput('6')">6</button>
+            <button class="pin-key" onclick="pinInput('7')">7</button>
+            <button class="pin-key" onclick="pinInput('8')">8</button>
+            <button class="pin-key" onclick="pinInput('9')">9</button>
+            <button class="pin-key pin-clear" onclick="pinClear()">⌫</button>
+            <button class="pin-key" onclick="pinInput('0')">0</button>
+            <button class="pin-key pin-enter" onclick="pinEnter()">✓</button>
+        </div>
+
+        <div id="pin-error" class="pin-error" style="display:none"></div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let pin = '';
+const maxLen = 6;
+
+function pinInput(num) {
+    if (pin.length < maxLen) {
+        pin += num;
+        updateDots();
+    }
+}
+
+function pinClear() {
+    pin = pin.slice(0, -1);
+    updateDots();
+    document.getElementById('pin-error').style.display = 'none';
+}
+
+function pinEnter() {
+    if (pin.length < 3) return;
+
+    fetch('/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({pin: pin})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = data.redirect;
+        } else {
+            document.getElementById('pin-error').textContent = data.error;
+            document.getElementById('pin-error').style.display = 'block';
+            pin = '';
+            updateDots();
+        }
+    });
+}
+
+function updateDots() {
+    const dotsContainer = document.getElementById('pin-dots');
+    let html = '';
+    for (let i = 0; i < maxLen; i++) {
+        html += '<span class="dot ' + (i < pin.length ? 'filled' : '') + '"></span>';
+    }
+    dotsContainer.innerHTML = html;
+}
+</script>
 {% endblock %}

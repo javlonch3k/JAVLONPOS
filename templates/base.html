@@ -7,15 +7,24 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    {% if session.get('ofitsiant_id') %}
+    {% if session.get('ofitsiant_id') and not session.get('admin_id') %}
     <nav class="navbar">
         <div class="nav-left">
-            <a href="{{ url_for('stollar') }}" class="nav-brand">🍽️ RESTORAN POS</a>
+            <a href="{{ url_for('stollar') }}" class="nav-brand">🍽️ POS</a>
         </div>
         <div class="nav-right">
-            <a href="{{ url_for('printerlar') }}" class="nav-link">🖨️</a>
             <span class="nav-user">👤 {{ session.get('ofitsiant_ism') }}</span>
             <a href="{{ url_for('logout') }}" class="btn-logout">Chiqish</a>
+        </div>
+    </nav>
+    {% elif session.get('admin_id') %}
+    <nav class="navbar" style="background:#1a252f">
+        <div class="nav-left">
+            <a href="{{ url_for('admin_panel') }}" class="nav-brand">🔐 ADMIN</a>
+        </div>
+        <div class="nav-right">
+            <span class="nav-user">👤 {{ session.get('admin_ism') }}</span>
+            <a href="{{ url_for('admin_logout') }}" class="btn-logout">Chiqish</a>
         </div>
     </nav>
     {% endif %}

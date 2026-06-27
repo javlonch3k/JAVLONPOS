@@ -1117,3 +1117,155 @@ body {
         grid-template-columns: repeat(3, 1fr);
     }
 }
+
+
+
+/* ===== PIN PAD LOGIN ===== */
+.pin-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    background: #2c3e50;
+}
+
+.pin-card {
+    background: white;
+    padding: 30px 25px;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    width: 100%;
+    max-width: 340px;
+    text-align: center;
+}
+
+.pin-header h1 {
+    font-size: 48px;
+    margin-bottom: 5px;
+}
+
+.pin-header h2 {
+    color: #2c3e50;
+    font-size: 20px;
+    margin-bottom: 5px;
+}
+
+.pin-header p {
+    color: #7f8c8d;
+    font-size: 14px;
+}
+
+.pin-display {
+    margin: 25px 0;
+}
+
+.pin-dots {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid #bdc3c7;
+    background: white;
+    transition: all 0.2s;
+}
+
+.dot.filled {
+    background: #2c3e50;
+    border-color: #2c3e50;
+    transform: scale(1.1);
+}
+
+.pin-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    max-width: 280px;
+    margin: 0 auto;
+}
+
+.pin-key {
+    width: 80px;
+    height: 80px;
+    border: none;
+    border-radius: 50%;
+    font-size: 28px;
+    font-weight: bold;
+    background: #ecf0f1;
+    color: #2c3e50;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin: 0 auto;
+}
+
+.pin-key:active {
+    background: #3498db;
+    color: white;
+    transform: scale(0.95);
+}
+
+.pin-key.pin-clear {
+    background: #e74c3c;
+    color: white;
+    font-size: 22px;
+}
+
+.pin-key.pin-enter {
+    background: #27ae60;
+    color: white;
+    font-size: 28px;
+}
+
+.pin-error {
+    margin-top: 15px;
+    color: #e74c3c;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 8px;
+    background: #fce4e4;
+    border-radius: 8px;
+}
+
+/* ===== PRINT STATUS ===== */
+.print-status {
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-size: 12px;
+}
+
+.print-status.success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.print-status.error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.print-status.partial {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.btn-print-all.printed {
+    background: #95a5a6;
+}
+
+@media (max-width: 400px) {
+    .pin-key {
+        width: 65px;
+        height: 65px;
+        font-size: 24px;
+    }
+
+    .pin-keypad {
+        gap: 8px;
+    }
+}
