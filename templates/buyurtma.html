@@ -1,37 +1,39 @@
 {% extends "base.html" %}
-{% block title %}Buyurtma - Stol #{{ stol.raqam }}{% endblock %}
+{% block title %}Stol #{{ stol.raqam }}{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <h2>📋 Stol #{{ stol.raqam }}</h2>
-    <a href="{{ url_for('stollar') }}" class="btn btn-back">← Stollarga</a>
+    <a href="{{ url_for('stollar') }}" class="btn btn-back">← Nazad</a>
 </div>
 
 <div class="buyurtma-layout">
-    <!-- Menyu bo'limi -->
+    <!-- Menyu bo'limi — katta tugmalar -->
     <div class="menyu-section">
-        <h3>🍽️ Menyu</h3>
-
-        <!-- Kategoriya filtrlari -->
-        <div class="kategoriya-filter">
-            <button class="kat-btn active" onclick="filterMenu('all')">Hammasi</button>
-            {% for kat in kategoriyalar %}
-            <button class="kat-btn kat-{{ kat.bolim }}" onclick="filterMenu('{{ kat.id }}')">{{ kat.nomi }}</button>
-            {% endfor %}
+        <!-- Kategoriya tanlash (katta tugmalar) -->
+        <div id="kategoriya-view" class="menu-view">
+            <h3>📂 Bo'lim tanlang</h3>
+            <div class="menu-grid">
+                {% for kat in kategoriyalar %}
+                <button class="menu-card kat-{{ kat.bolim }}" onclick="showKategoriya({{ kat.id }}, '{{ kat.nomi }}')">
+                    {% if kat.bolim == 'salatchi' %}🥗
+                    {% elif kat.bolim == 'shashlikchi' %}🍖
+                    {% elif kat.bolim == 'somsachi' %}🥟
+                    {% endif %}
+                    <span>{{ kat.nomi }}</span>
+                </button>
+                {% endfor %}
+            </div>
         </div>
 
-        <!-- Menyu ro'yxati -->
-        <div class="menyu-list">
-            {% for item in menyu %}
-            <div class="menyu-item" data-kategoriya="{{ item.kategoriya_id }}" data-bolim="{{ item.bolim }}">
-                <div class="menyu-info">
-                    <span class="bolim-badge {{ item.bolim }}">{{ item.bolim }}</span>
-                    <div class="menyu-nomi">{{ item.nomi }}</div>
-                    <div class="menyu-narx">{{ "{:,.0f}".format(item.narx) }} so'm</div>
-                </div>
-                <button class="btn btn-qoshish" onclick="qoshish({{ buyurtma_id }}, {{ item.id }})">+</button>
+        <!-- Taomlar ro'yxati (katta tugmalar) -->
+        <div id="taomlar-view" class="menu-view" style="display:none">
+            <div class="menu-header">
+                <button class="btn btn-nazad" onclick="showKategoriyalar()">← Nazad</button>
+                <h3 id="kat-title"></h3>
             </div>
-            {% endfor %}
+            <div id="taomlar-grid" class="menu-grid">
+            </div>
         </div>
     </div>
 
@@ -60,6 +62,8 @@
 
         <div class="buyurtma-footer">
             <div id="jami-summa" class="jami-summa">JAMI: {{ "{:,.0f}".format(jami) }} so'm</div>
+            <div id="xizmat-haqqi" class="xizmat-haqqi">+ Xizmat: {{ "{:,.0f}".format((jami * foiz / 100)|int) }} so'm ({{ foiz }}%)</div>
+            <div id="umumiy-summa" class="umumiy-summa">UMUMIY: {{ "{:,.0f}".format((jami + jami * foiz / 100)|int) }} so'm</div>
 
             <!-- Print status -->
             <div id="print-status" class="print-status" style="display:none"></div>
@@ -80,19 +84,30 @@
 {% block scripts %}
 <script>
 const buyurtmaId = {{ buyurtma_id }};
-let printedItems = new Set(); // Yuborilgan itemlar
+const foiz = {{ foiz }};
 
-function filterMenu(katId) {
-    const items = document.querySelectorAll('.menyu-item');
-    items.forEach(item => {
-        if (katId === 'all') {
-            item.style.display = 'flex';
-        } else {
-            item.style.display = item.dataset.kategoriya === katId ? 'flex' : 'none';
-        }
-    });
-    document.querySelectorAll('.kat-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+// Menyu ma'lumotlari
+const menyuData = {{ menyu_json|safe }};
+
+function showKategoriya(katId, katNomi) {
+    document.getElementById('kategoriya-view').style.display = 'none';
+    document.getElementById('taomlar-view').style.display = 'block';
+    document.getElementById('kat-title').textContent = katNomi;
+
+    const grid = document.getElementById('taomlar-grid');
+    const items = menyuData.filter(m => m.kategoriya_id === katId);
+
+    grid.innerHTML = items.map(item => `
+        <button class="menu-card taom-card ${item.bolim}" onclick="qoshish(${buyurtmaId}, ${item.id})">
+            <span class="taom-nomi">${item.nomi}</span>
+            <span class="taom-narx">${Number(item.narx).toLocaleString()}</span>
+        </button>
+    `).join('');
+}
+
+function showKategoriyalar() {
+    document.getElementById('kategoriya-view').style.display = 'block';
+    document.getElementById('taomlar-view').style.display = 'none';
 }
 
 function qoshish(buyurtmaId, menyuId) {
@@ -104,7 +119,6 @@ function qoshish(buyurtmaId, menyuId) {
     .then(res => res.json())
     .then(data => {
         yangilash(data);
-        // Yangi item qo'shildi — print tugmasi faollashsin
         document.getElementById('btn-print').classList.remove('printed');
         document.getElementById('btn-print').textContent = '🖨️ OSHXONAGA YUBORISH';
     });
@@ -124,7 +138,9 @@ function kamaytirish(buyurtmaId, menyuId) {
 
 function yangilash(data) {
     const list = document.getElementById('buyurtma-list');
-    const jami = document.getElementById('jami-summa');
+    const jami_el = document.getElementById('jami-summa');
+    const xizmat_el = document.getElementById('xizmat-haqqi');
+    const umumiy_el = document.getElementById('umumiy-summa');
 
     if (data.items.length === 0) {
         list.innerHTML = '<div class="buyurtma-bosh">Buyurtma bo\'sh</div>';
@@ -143,14 +159,19 @@ function yangilash(data) {
         `).join('');
     }
 
-    jami.textContent = 'JAMI: ' + Number(data.jami).toLocaleString() + " so'm";
+    const jami = data.jami;
+    const xizmat = Math.round(jami * foiz / 100);
+    const umumiy = jami + xizmat;
+
+    jami_el.textContent = 'JAMI: ' + Number(jami).toLocaleString() + " so'm";
+    xizmat_el.textContent = '+ Xizmat: ' + Number(xizmat).toLocaleString() + " so'm (" + foiz + "%)";
+    umumiy_el.textContent = 'UMUMIY: ' + Number(umumiy).toLocaleString() + " so'm";
 }
 
 function printAll(buyurtmaId) {
     const btn = document.getElementById('btn-print');
     const status = document.getElementById('print-status');
 
-    // Allaqachon yuborilgan bo'lsa
     if (btn.classList.contains('printed')) {
         if (!confirm('Chek allaqachon yuborilgan! Qayta yuborishni xohlaysizmi?')) {
             return;
@@ -164,7 +185,6 @@ function printAll(buyurtmaId) {
     .then(res => res.json())
     .then(data => {
         btn.disabled = false;
-
         if (data.error) {
             btn.textContent = '🖨️ OSHXONAGA YUBORISH';
             status.innerHTML = '❌ ' + data.error;
@@ -172,7 +192,6 @@ function printAll(buyurtmaId) {
             status.style.display = 'block';
             return;
         }
-
         if (data.natijalar.length === 0) {
             btn.textContent = '🖨️ OSHXONAGA YUBORISH';
             status.innerHTML = '⚠️ Printer sozlanmagan!';
@@ -180,24 +199,20 @@ function printAll(buyurtmaId) {
             status.style.display = 'block';
             return;
         }
-
-        // Muvaffaqiyatli
-        let allSuccess = data.natijalar.every(n => n.success);
         btn.textContent = '✅ YUBORILDI';
         btn.classList.add('printed');
-
         let html = '';
         data.natijalar.forEach(n => {
             html += '<div>' + (n.success ? '✅' : '❌') + ' ' + n.printer + '</div>';
         });
         status.innerHTML = html;
-        status.className = 'print-status ' + (allSuccess ? 'success' : 'partial');
+        status.className = 'print-status success';
         status.style.display = 'block';
     })
     .catch(err => {
         btn.disabled = false;
         btn.textContent = '🖨️ OSHXONAGA YUBORISH';
-        status.innerHTML = '❌ Xatolik: ' + err.message;
+        status.innerHTML = '❌ Xatolik';
         status.className = 'print-status error';
         status.style.display = 'block';
     });

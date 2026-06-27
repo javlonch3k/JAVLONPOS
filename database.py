@@ -105,6 +105,15 @@ def init_db():
         )
     """)
 
+    # Sozlamalar jadvali (xizmat haqqi foizi va boshqa)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS sozlamalar (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kalit TEXT NOT NULL UNIQUE,
+            qiymat TEXT NOT NULL
+        )
+    """)
+
     conn.commit()
 
     # Boshlang'ich ma'lumotlar
@@ -178,6 +187,13 @@ def init_db():
         cursor.execute(
             "INSERT INTO adminlar (ism, login, parol) VALUES (?, ?, ?)",
             ("Admin", "admin", "admin123")
+        )
+
+    cursor.execute("SELECT COUNT(*) FROM sozlamalar")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute(
+            "INSERT INTO sozlamalar (kalit, qiymat) VALUES (?, ?)",
+            ("xizmat_haqqi_foiz", "10")
         )
 
     conn.commit()

@@ -10,6 +10,7 @@
         <a href="{{ url_for('admin_ofitsiantlar') }}" class="admin-nav-btn">👥 Ofitsiantlar</a>
         <a href="{{ url_for('printerlar') }}" class="admin-nav-btn">🖨️ Printerlar</a>
         <a href="{{ url_for('admin_hisobot') }}" class="admin-nav-btn">📊 Hisobot</a>
+        <a href="{{ url_for('admin_sozlamalar') }}" class="admin-nav-btn">⚙️ Sozlamalar</a>
         <a href="{{ url_for('admin_logout') }}" class="admin-nav-btn logout">🚪 Chiqish</a>
     </div>
 </div>
@@ -43,7 +44,7 @@
     <div class="stat-card highlight">
         <div class="stat-icon">💰</div>
         <div class="stat-value">{{ "{:,.0f}".format(stats.bugungi_daromad) }}</div>
-        <div class="stat-label">Bugungi daromad (so'm)</div>
+        <div class="stat-label">Bugungi daromad</div>
     </div>
 </div>
 {% endblock %}

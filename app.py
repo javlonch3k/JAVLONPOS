@@ -122,15 +122,25 @@ def buyurtma(stol_id):
     # Jami summa
     jami = sum(item['soni'] * item['narx'] for item in items)
 
+    # Xizmat haqqi foizi
+    foiz_row = conn.execute("SELECT qiymat FROM sozlamalar WHERE kalit='xizmat_haqqi_foiz'").fetchone()
+    foiz = float(foiz_row['qiymat']) if foiz_row else 10
+
     conn.close()
+
+    # Menyu JSON (JavaScript uchun)
+    import json
+    menyu_json = json.dumps([dict(m) for m in menyu])
 
     return render_template('buyurtma.html',
                            stol=stol,
                            buyurtma_id=buyurtma_id,
                            kategoriyalar=kategoriyalar,
                            menyu=menyu,
+                           menyu_json=menyu_json,
                            items=items,
-                           jami=jami)
+                           jami=jami,
+                           foiz=foiz)
 
 
 @app.route('/api/qoshish', methods=['POST'])
@@ -699,6 +709,10 @@ def admin_hisobot():
 
     conn = get_connection()
 
+    # Xizmat haqqi foizi
+    foiz_row = conn.execute("SELECT qiymat FROM sozlamalar WHERE kalit='xizmat_haqqi_foiz'").fetchone()
+    foiz = float(foiz_row['qiymat']) if foiz_row else 10
+
     # Bugungi sotuv
     bugungi = conn.execute("""
         SELECT COALESCE(SUM(jami_summa),0) as jami, COUNT(*) as soni
@@ -706,12 +720,20 @@ def admin_hisobot():
         WHERE date(sana)=date('now','localtime') AND holat='yopiq'
     """).fetchone()
 
+    bugungi_jami = bugungi['jami']
+    bugungi_xizmat = bugungi_jami * foiz / 100
+    bugungi_umumiy = bugungi_jami + bugungi_xizmat
+
     # Oylik sotuv
     oylik = conn.execute("""
         SELECT COALESCE(SUM(jami_summa),0) as jami, COUNT(*) as soni
         FROM buyurtmalar
         WHERE strftime('%Y-%m', sana)=strftime('%Y-%m', 'now','localtime') AND holat='yopiq'
     """).fetchone()
+
+    oylik_jami = oylik['jami']
+    oylik_xizmat = oylik_jami * foiz / 100
+    oylik_umumiy = oylik_jami + oylik_xizmat
 
     # Eng ko'p sotilgan taomlar
     top_taomlar = conn.execute("""
@@ -734,24 +756,55 @@ def admin_hisobot():
         ORDER BY jami DESC
     """).fetchall()
 
-    # Oxirgi 10 buyurtma
-    oxirgi = conn.execute("""
+    # Bugungi cheklar (batafsil)
+    bugungi_cheklar = conn.execute("""
         SELECT b.*, s.raqam as stol_raqam, o.ism as ofitsiant_ism
         FROM buyurtmalar b
         JOIN stollar s ON b.stol_id = s.id
         JOIN ofitsiantlar o ON b.ofitsiant_id = o.id
+        WHERE date(b.sana)=date('now','localtime')
         ORDER BY b.sana DESC
-        LIMIT 10
     """).fetchall()
 
     conn.close()
 
     return render_template('admin_hisobot.html',
-                           bugungi=bugungi,
-                           oylik=oylik,
+                           foiz=foiz,
+                           bugungi_jami=bugungi_jami,
+                           bugungi_xizmat=bugungi_xizmat,
+                           bugungi_umumiy=bugungi_umumiy,
+                           bugungi_soni=bugungi['soni'],
+                           oylik_jami=oylik_jami,
+                           oylik_xizmat=oylik_xizmat,
+                           oylik_umumiy=oylik_umumiy,
+                           oylik_soni=oylik['soni'],
                            top_taomlar=top_taomlar,
                            ofitsiant_stat=ofitsiant_stat,
-                           oxirgi=oxirgi)
+                           bugungi_cheklar=bugungi_cheklar)
+
+
+@app.route('/admin/sozlamalar', methods=['GET', 'POST'])
+def admin_sozlamalar():
+    """Xizmat haqqi foizi va boshqa sozlamalar"""
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_login'))
+
+    conn = get_connection()
+
+    if request.method == 'POST':
+        foiz = request.form.get('xizmat_haqqi_foiz', '10').strip()
+        conn.execute(
+            "UPDATE sozlamalar SET qiymat=? WHERE kalit='xizmat_haqqi_foiz'",
+            (foiz,)
+        )
+        conn.commit()
+        flash(f'Xizmat haqqi {foiz}% ga o\'zgartirildi!', 'success')
+
+    foiz_row = conn.execute("SELECT qiymat FROM sozlamalar WHERE kalit='xizmat_haqqi_foiz'").fetchone()
+    foiz = foiz_row['qiymat'] if foiz_row else '10'
+    conn.close()
+
+    return render_template('admin_sozlamalar.html', foiz=foiz)
 
 
 with app.app_context():
