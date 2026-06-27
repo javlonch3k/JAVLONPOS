@@ -62,7 +62,8 @@
             <div id="jami-summa" class="jami-summa">JAMI: {{ "{:,.0f}".format(jami) }} so'm</div>
 
             <div class="buyurtma-buttons">
-                <a href="{{ url_for('chek', buyurtma_id=buyurtma_id) }}" class="btn btn-chek">🖨️ CHEK CHIQARISH</a>
+                <button class="btn btn-print-all" onclick="printAll({{ buyurtma_id }})">🖨️ PRINTERLARGA YUBORISH</button>
+                <a href="{{ url_for('chek', buyurtma_id=buyurtma_id) }}" class="btn btn-chek">📋 CHEKNI KO'RISH</a>
                 <form method="POST" action="{{ url_for('yopish', buyurtma_id=buyurtma_id) }}" style="display:inline">
                     <button type="submit" class="btn btn-yopish" onclick="return confirm('Hisobni yopishni tasdiqlaysizmi?')">✅ HISOBNI YOPISH</button>
                 </form>
@@ -137,6 +138,29 @@ function yangilash(data) {
     }
 
     jami.textContent = 'JAMI: ' + Number(data.jami).toLocaleString() + " so'm";
+}
+
+function printAll(buyurtmaId) {
+    fetch('/api/print/' + buyurtmaId, {method: 'POST'})
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            alert('❌ ' + data.error);
+            return;
+        }
+        if (data.natijalar.length === 0) {
+            alert('⚠️ Printer sozlanmagan! Printerlar sahifasidan qo\'shing.');
+            return;
+        }
+        let msg = '🖨️ Natijalar:\n\n';
+        data.natijalar.forEach(n => {
+            msg += (n.success ? '✅' : '❌') + ' ' + n.printer + ' (' + n.bolim + '): ' + n.xabar + '\n';
+        });
+        alert(msg);
+    })
+    .catch(err => {
+        alert('❌ Xatolik: ' + err.message);
+    });
 }
 </script>
 {% endblock %}

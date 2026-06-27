@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Printerlar - Restoran POS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>🖨️ Printerlar sozlamalari</h2>
+    <a href="{{ url_for('stollar') }}" class="btn btn-back">← Stollarga</a>
+</div>
+
+<!-- Yangi printer qo'shish -->
+<div class="printer-form-card">
+    <h3>➕ Yangi printer qo'shish</h3>
+    <form method="POST" action="{{ url_for('printer_qoshish') }}" class="printer-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Printer nomi</label>
+                <input type="text" name="nomi" placeholder="Masalan: Salatchi-1" required>
+            </div>
+            <div class="form-group">
+                <label>IP manzil</label>
+                <input type="text" name="ip_manzil" placeholder="192.168.1.50" required>
+            </div>
+            <div class="form-group">
+                <label>Port</label>
+                <input type="number" name="port" value="9100" placeholder="9100">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Bo'lim</label>
+                <select name="bolim" required>
+                    <option value="">-- Tanlang --</option>
+                    <option value="salatchi">🥗 Salatchi</option>
+                    <option value="shashlikchi">🍖 Shashlikchi</option>
+                    <option value="somsachi">🥟 Somsachi</option>
+                    <option value="kassa">💰 Kassa (umumiy hisob)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Joylashuv</label>
+                <input type="text" name="joylashuv" placeholder="Masalan: Oshxona, Mangal">
+            </div>
+            <div class="form-group">
+                <label>&nbsp;</label>
+                <button type="submit" class="btn btn-add-printer">➕ Qo'shish</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Printerlar ro'yxati -->
+<div class="printerlar-list">
+    <h3>📋 Mavjud printerlar ({{ printerlar|length }} ta)</h3>
+
+    {% if printerlar %}
+    <div class="printer-grid">
+        {% for p in printerlar %}
+        <div class="printer-card {{ 'active' if p.faol else 'inactive' }}">
+            <div class="printer-header">
+                <span class="printer-icon">🖨️</span>
+                <span class="printer-name">{{ p.nomi }}</span>
+                <span class="printer-status">{{ '🟢' if p.faol else '🔴' }}</span>
+            </div>
+            <div class="printer-details">
+                <div><strong>IP:</strong> {{ p.ip_manzil }}:{{ p.port }}</div>
+                <div><strong>Bo'lim:</strong>
+                    {% if p.bolim == 'salatchi' %}🥗 Salatchi
+                    {% elif p.bolim == 'shashlikchi' %}🍖 Shashlikchi
+                    {% elif p.bolim == 'somsachi' %}🥟 Somsachi
+                    {% elif p.bolim == 'kassa' %}💰 Kassa
+                    {% endif %}
+                </div>
+                {% if p.joylashuv %}
+                <div><strong>Joy:</strong> {{ p.joylashuv }}</div>
+                {% endif %}
+            </div>
+            <div class="printer-actions">
+                <button class="btn btn-test-printer" onclick="testPrinter({{ p.id }})">🔌 Test</button>
+                <form method="POST" action="{{ url_for('printer_toggle', printer_id=p.id) }}" style="display:inline">
+                    <button type="submit" class="btn {{ 'btn-off' if p.faol else 'btn-on' }}">
+                        {{ '⏸️ O\'chirish' if p.faol else '▶️ Yoqish' }}
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('printer_ochirish', printer_id=p.id) }}" style="display:inline"
+                      onsubmit="return confirm('Printerni o\'chirishni tasdiqlaysizmi?')">
+                    <button type="submit" class="btn btn-delete-printer">🗑️</button>
+                </form>
+            </div>
+            <div class="printer-test-result" id="test-result-{{ p.id }}"></div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="no-printers">
+        <p>Hali printer qo'shilmagan. Yuqoridagi forma orqali qo'shing.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function testPrinter(printerId) {
+    const resultEl = document.getElementById('test-result-' + printerId);
+    resultEl.innerHTML = '⏳ Tekshirilmoqda...';
+    resultEl.className = 'printer-test-result testing';
+
+    fetch('/printer/test/' + printerId, {method: 'POST'})
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            resultEl.innerHTML = '✅ ' + data.xabar;
+            resultEl.className = 'printer-test-result success';
+        } else {
+            resultEl.innerHTML = '❌ ' + data.xabar;
+            resultEl.className = 'printer-test-result error';
+        }
+    })
+    .catch(err => {
+        resultEl.innerHTML = '❌ Xatolik: ' + err.message;
+        resultEl.className = 'printer-test-result error';
+    });
+}
+</script>
+{% endblock %}

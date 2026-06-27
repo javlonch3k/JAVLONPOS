@@ -6,6 +6,7 @@ Bo'limlar: Salatchi, Shashlikchi, Somsachi
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from database import init_db, get_connection
 from chek import barcha_cheklar
+from printer import print_buyurtma_cheklari, print_chek, test_printer
 
 app = Flask(__name__)
 app.secret_key = 'restoran_pos_secret_key_2024'
@@ -274,6 +275,130 @@ def yopish(buyurtma_id):
     conn.close()
     flash('Hisob yopildi! Stol bo\'shatildi.', 'success')
     return redirect(url_for('stollar'))
+
+
+# ===== PRINTER BOSHQARISH =====
+
+@app.route('/printerlar')
+def printerlar():
+    """Printerlar ro'yxati"""
+    if 'ofitsiant_id' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_connection()
+    printerlar_list = conn.execute("SELECT * FROM printerlar ORDER BY bolim, nomi").fetchall()
+    conn.close()
+
+    return render_template('printerlar.html', printerlar=printerlar_list)
+
+
+@app.route('/printer/qoshish', methods=['POST'])
+def printer_qoshish():
+    """Yangi printer qo'shish"""
+    if 'ofitsiant_id' not in session:
+        return redirect(url_for('login'))
+
+    nomi = request.form.get('nomi', '').strip()
+    ip_manzil = request.form.get('ip_manzil', '').strip()
+    port = request.form.get('port', '9100').strip()
+    bolim = request.form.get('bolim', '').strip()
+    joylashuv = request.form.get('joylashuv', '').strip()
+
+    if not nomi or not ip_manzil or not bolim:
+        flash('Barcha maydonlarni to\'ldiring!', 'error')
+        return redirect(url_for('printerlar'))
+
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO printerlar (nomi, ip_manzil, port, bolim, joylashuv) VALUES (?, ?, ?, ?, ?)",
+        (nomi, ip_manzil, int(port), bolim, joylashuv)
+    )
+    conn.commit()
+    conn.close()
+
+    flash(f'Printer "{nomi}" qo\'shildi!', 'success')
+    return redirect(url_for('printerlar'))
+
+
+@app.route('/printer/ochirish/<int:printer_id>', methods=['POST'])
+def printer_ochirish(printer_id):
+    """Printerni o'chirish"""
+    if 'ofitsiant_id' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_connection()
+    conn.execute("DELETE FROM printerlar WHERE id=?", (printer_id,))
+    conn.commit()
+    conn.close()
+
+    flash('Printer o\'chirildi!', 'success')
+    return redirect(url_for('printerlar'))
+
+
+@app.route('/printer/toggle/<int:printer_id>', methods=['POST'])
+def printer_toggle(printer_id):
+    """Printerni yoqish/o'chirish"""
+    if 'ofitsiant_id' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_connection()
+    printer = conn.execute("SELECT * FROM printerlar WHERE id=?", (printer_id,)).fetchone()
+    if printer:
+        new_status = 0 if printer['faol'] else 1
+        conn.execute("UPDATE printerlar SET faol=? WHERE id=?", (new_status, printer_id))
+        conn.commit()
+    conn.close()
+
+    return redirect(url_for('printerlar'))
+
+
+@app.route('/printer/test/<int:printer_id>', methods=['POST'])
+def printer_test(printer_id):
+    """Printerni test qilish"""
+    if 'ofitsiant_id' not in session:
+        return jsonify({'error': 'Login qiling'}), 401
+
+    conn = get_connection()
+    printer = conn.execute("SELECT * FROM printerlar WHERE id=?", (printer_id,)).fetchone()
+    conn.close()
+
+    if not printer:
+        return jsonify({'success': False, 'xabar': 'Printer topilmadi'})
+
+    success, xabar = test_printer(printer['ip_manzil'], printer['port'])
+    return jsonify({'success': success, 'xabar': xabar})
+
+
+@app.route('/api/print/<int:buyurtma_id>', methods=['POST'])
+def api_print(buyurtma_id):
+    """Buyurtma chekllarini printerlarga yuborish"""
+    if 'ofitsiant_id' not in session:
+        return jsonify({'error': 'Login qiling'}), 401
+
+    conn = get_connection()
+    buyurtma_row = conn.execute("SELECT * FROM buyurtmalar WHERE id=?", (buyurtma_id,)).fetchone()
+    if not buyurtma_row:
+        conn.close()
+        return jsonify({'error': 'Buyurtma topilmadi'}), 404
+
+    stol = conn.execute("SELECT * FROM stollar WHERE id=?", (buyurtma_row['stol_id'],)).fetchone()
+
+    items = conn.execute("""
+        SELECT bt.*, m.nomi FROM buyurtma_tafsilot bt
+        JOIN menyu m ON bt.menyu_id = m.id
+        WHERE bt.buyurtma_id = ?
+    """, (buyurtma_id,)).fetchall()
+    conn.close()
+
+    if not items:
+        return jsonify({'error': 'Buyurtma bo\'sh'}), 400
+
+    tafsilotlar = [dict(item) for item in items]
+    natijalar = print_buyurtma_cheklari(
+        buyurtma_id, stol['raqam'], session['ofitsiant_ism'], tafsilotlar
+    )
+
+    return jsonify({'natijalar': natijalar})
 
 
 with app.app_context():

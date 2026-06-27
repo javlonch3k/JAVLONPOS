@@ -82,6 +82,19 @@ def init_db():
         )
     """)
 
+    # Printerlar jadvali
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS printerlar (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nomi TEXT NOT NULL,
+            ip_manzil TEXT NOT NULL,
+            port INTEGER DEFAULT 9100,
+            bolim TEXT NOT NULL,  -- salatchi, shashlikchi, somsachi, kassa
+            faol INTEGER DEFAULT 1,
+            joylashuv TEXT
+        )
+    """)
+
     conn.commit()
 
     # Boshlang'ich ma'lumotlar
