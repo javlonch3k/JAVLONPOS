@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Buyurtma - Stol #{{ stol.raqam }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>📋 Stol #{{ stol.raqam }} | Buyurtma #{{ buyurtma_id }}</h2>
+    <a href="{{ url_for('stollar') }}" class="btn btn-back">← Stollarga</a>
+</div>
+
+<div class="buyurtma-layout">
+    <!-- Menyu bo'limi -->
+    <div class="menyu-section">
+        <h3>🍽️ Menyu</h3>
+
+        <!-- Kategoriya filtrlari -->
+        <div class="kategoriya-filter">
+            <button class="kat-btn active" onclick="filterMenu('all')">Hammasi</button>
+            {% for kat in kategoriyalar %}
+            <button class="kat-btn kat-{{ kat.bolim }}" onclick="filterMenu('{{ kat.id }}')">{{ kat.nomi }}</button>
+            {% endfor %}
+        </div>
+
+        <!-- Menyu ro'yxati -->
+        <div class="menyu-list">
+            {% for item in menyu %}
+            <div class="menyu-item" data-kategoriya="{{ item.kategoriya_id }}" data-bolim="{{ item.bolim }}">
+                <div class="menyu-info">
+                    <span class="bolim-badge {{ item.bolim }}">{{ item.bolim }}</span>
+                    <div class="menyu-nomi">{{ item.nomi }}</div>
+                    <div class="menyu-narx">{{ "{:,.0f}".format(item.narx) }} so'm</div>
+                </div>
+                <button class="btn btn-qoshish" onclick="qoshish({{ buyurtma_id }}, {{ item.id }})">+</button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Buyurtma bo'limi -->
+    <div class="buyurtma-section">
+        <h3>🧾 Buyurtma</h3>
+
+        <div id="buyurtma-list" class="buyurtma-list">
+            {% if items %}
+                {% for item in items %}
+                <div class="buyurtma-item">
+                    <div class="item-info">
+                        <span class="item-nomi">{{ item.nomi }}</span>
+                        <span class="item-detail">{{ item.soni }} × {{ "{:,.0f}".format(item.narx) }}</span>
+                    </div>
+                    <div class="item-actions">
+                        <span class="item-summa">{{ "{:,.0f}".format(item.soni * item.narx) }}</span>
+                        <button class="btn btn-minus" onclick="kamaytirish({{ buyurtma_id }}, {{ item.menyu_id }})">−</button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="buyurtma-bosh">Buyurtma bo'sh</div>
+            {% endif %}
+        </div>
+
+        <div class="buyurtma-footer">
+            <div id="jami-summa" class="jami-summa">JAMI: {{ "{:,.0f}".format(jami) }} so'm</div>
+
+            <div class="buyurtma-buttons">
+                <a href="{{ url_for('chek', buyurtma_id=buyurtma_id) }}" class="btn btn-chek">🖨️ CHEK CHIQARISH</a>
+                <form method="POST" action="{{ url_for('yopish', buyurtma_id=buyurtma_id) }}" style="display:inline">
+                    <button type="submit" class="btn btn-yopish" onclick="return confirm('Hisobni yopishni tasdiqlaysizmi?')">✅ HISOBNI YOPISH</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const buyurtmaId = {{ buyurtma_id }};
+
+function filterMenu(katId) {
+    const items = document.querySelectorAll('.menyu-item');
+    items.forEach(item => {
+        if (katId === 'all') {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = item.dataset.kategoriya === katId ? 'flex' : 'none';
+        }
+    });
+
+    // Active button
+    document.querySelectorAll('.kat-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
+function qoshish(buyurtmaId, menyuId) {
+    fetch('/api/qoshish', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({buyurtma_id: buyurtmaId, menyu_id: menyuId})
+    })
+    .then(res => res.json())
+    .then(data => {
+        yangilash(data);
+    });
+}
+
+function kamaytirish(buyurtmaId, menyuId) {
+    fetch('/api/kamaytirish', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({buyurtma_id: buyurtmaId, menyu_id: menyuId})
+    })
+    .then(res => res.json())
+    .then(data => {
+        yangilash(data);
+    });
+}
+
+function yangilash(data) {
+    const list = document.getElementById('buyurtma-list');
+    const jami = document.getElementById('jami-summa');
+
+    if (data.items.length === 0) {
+        list.innerHTML = '<div class="buyurtma-bosh">Buyurtma bo\'sh</div>';
+    } else {
+        list.innerHTML = data.items.map(item => `
+            <div class="buyurtma-item">
+                <div class="item-info">
+                    <span class="item-nomi">${item.nomi}</span>
+                    <span class="item-detail">${item.soni} × ${Number(item.narx).toLocaleString()}</span>
+                </div>
+                <div class="item-actions">
+                    <span class="item-summa">${(item.soni * item.narx).toLocaleString()}</span>
+                    <button class="btn btn-minus" onclick="kamaytirish(${buyurtmaId}, ${item.menyu_id})">−</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    jami.textContent = 'JAMI: ' + Number(data.jami).toLocaleString() + " so'm";
+}
+</script>
+{% endblock %}

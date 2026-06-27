@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Stollar - Restoran POS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>🪑 Stollar</h2>
+    <p>Stol tanlang — buyurtma qilish uchun</p>
+</div>
+
+<div class="stollar-grid">
+    {% for stol in stollar %}
+    <a href="{{ url_for('buyurtma', stol_id=stol.id) }}" class="stol-card {{ 'band' if stol.holat == 'band' else 'bosh' }}">
+        <div class="stol-raqam">{{ stol.raqam }}</div>
+        <div class="stol-holat">{{ 'BAND' if stol.holat == 'band' else "BO'SH" }}</div>
+    </a>
+    {% endfor %}
+</div>
+{% endblock %}

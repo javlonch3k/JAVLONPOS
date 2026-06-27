@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Cheklar - Stol #{{ stol.raqam }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>🖨️ Cheklar — Stol #{{ stol.raqam }}</h2>
+    <a href="{{ url_for('buyurtma', stol_id=stol.id) }}" class="btn btn-back">← Buyurtmaga</a>
+</div>
+
+<div class="chek-tabs">
+    {% set bolim_nomlari = {'salatchi': '🥗 Salatchi', 'shashlikchi': '🍖 Shashlikchi', 'somsachi': '🥟 Somsachi', 'umumiy': '📋 Umumiy'} %}
+
+    <div class="tab-buttons">
+        {% for bolim in cheklar %}
+        <button class="tab-btn {% if loop.first %}active{% endif %}" onclick="openTab('{{ bolim }}')">
+            {{ bolim_nomlari.get(bolim, bolim) }}
+        </button>
+        {% endfor %}
+    </div>
+
+    {% for bolim, data in cheklar.items() %}
+    <div class="tab-content {% if loop.first %}active{% endif %}" id="tab-{{ bolim }}">
+        <div class="chek-paper">
+            <pre>{{ data.matn }}</pre>
+        </div>
+        <button class="btn btn-print" onclick="printChek('{{ bolim }}')">🖨️ Chop etish</button>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openTab(bolim) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + bolim).classList.add('active');
+    event.target.classList.add('active');
+}
+
+function printChek(bolim) {
+    const content = document.querySelector('#tab-' + bolim + ' .chek-paper').innerHTML;
+    const win = window.open('', '', 'width=400,height=600');
+    win.document.write('<html><head><title>Chek</title>');
+    win.document.write('<style>body{font-family:monospace;font-size:14px;padding:10px;} pre{white-space:pre-wrap;}</style>');
+    win.document.write('</head><body>');
+    win.document.write(content);
+    win.document.write('</body></html>');
+    win.document.close();
+    win.print();
+}
+</script>
+{% endblock %}
